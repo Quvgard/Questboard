@@ -1,4 +1,4 @@
-export type Rank = 'SS' | 'S' | 'A' | 'B' | 'C';
+export type Rank = 'SS' | 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 export interface Order {
   id: string;

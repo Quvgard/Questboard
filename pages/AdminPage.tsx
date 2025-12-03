@@ -358,7 +358,7 @@ const AdminPage: React.FC = () => {
                               <div className="w-1/2">
                                   <label className="text-xs text-gray-500">Ранг</label>
                                   <select className="w-full border p-2 rounded" value={editingOrder.rank || 'C'} onChange={e => setEditingOrder({...editingOrder, rank: e.target.value as Rank})}>
-                                      {['SS', 'S', 'A', 'B', 'C'].map(r => <option key={r} value={r}>{r}</option>)}
+                                    {['SS', 'S', 'A', 'B', 'C', 'D', 'E', 'F'].map(r => <option key={r} value={r}>{r}</option>)}
                                   </select>
                               </div>
                               <div className="w-1/2">
