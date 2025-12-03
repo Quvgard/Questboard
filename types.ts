@@ -1,15 +1,9 @@
-export enum Rank {
-  SS = 'SS',
-  S = 'S',
-  A = 'A',
-  B = 'B',
-  C = 'C',
-}
+export type Rank = 'SS' | 'S' | 'A' | 'B' | 'C';
 
 export interface Order {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   rank: Rank;
   max_slots: number;
   taken_slots: number;
@@ -23,19 +17,20 @@ export interface OrderTaker {
   order_id: string;
   student_name: string;
   student_group: string;
-  comment: string;
+  comment: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
-  // Joins
-  orders?: Order;
+  // Optional join fields
+  orders?: Order; 
 }
 
 export interface Reward {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   price: number;
   is_active: boolean;
+  created_at: string;
 }
 
 export interface Student {

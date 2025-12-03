@@ -1,4 +1,4 @@
 {
-  "name": "QuestBoard",
-  "description": "A gamified task board for students and teachers. Teachers post quests (tasks), students claim them, and earn points for rewards."
+  "name": "Guild Board - Student Tasks",
+  "description": "A gamified task management system for students with a quest board aesthetic."
 }

@@ -1,42 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Quest Board</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Доска Заданий Гильдии</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              hand: ['"Patrick Hand"', 'cursive'],
-              marker: ['"Permanent Marker"', 'cursive'],
-              sans: ['"Roboto"', 'sans-serif'],
-            },
-            colors: {
-              wood: {
-                100: '#F5E6D3',
-                300: '#E6CCB2',
-                500: '#DDB892',
-                700: '#B08968',
-                900: '#7F5539',
-              },
-              paper: {
-                yellow: '#FEF9C3',
-                pink: '#FCE7F3',
-                blue: '#E0F2FE',
-                green: '#DCFCE7',
-                red: '#FEE2E2',
-              }
-            }
-          }
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f3f4f6;
+        background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+        background-size: 20px 20px;
       }
-    </script>
+      .font-hand {
+        font-family: 'Caveat', cursive;
+      }
+      .rotate-r-1 { transform: rotate(1deg); }
+      .rotate-l-1 { transform: rotate(-1deg); }
+      .rotate-r-2 { transform: rotate(2deg); }
+      .rotate-l-2 { transform: rotate(-2deg); }
+      
+      /* Cork board texture simulation for header */
+      .cork-pattern {
+        background-color: #8b5a2b;
+        background-image: url("data:image/svg+xml,%3Csvg width='42' height='44' viewBox='0 0 42 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg id='Page-1' fill='none' fill-rule='evenodd'%3E%3Cg id='brick-wall' fill='%23a06a38' fill-opacity='0.4'%3E%3Cpath d='M0 0h42v44H0V0zm1 1h40v20H1V1zM0 22h42v20H0V22zm1 1h40v18H1V23z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -44,9 +34,9 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
     "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.10.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-hot-toast": "https://aistudiocdn.com/react-hot-toast@^2.6.0"
   }
 }
 </script>
