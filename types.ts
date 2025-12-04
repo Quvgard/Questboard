@@ -1,5 +1,33 @@
 export type Rank = 'SS' | 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
+export const RANK_DESCRIPTIONS: Record<Rank, string> = {
+  SS: 'Легендарный',
+  S: 'Эпический', 
+  A: 'Сложный',
+  B: 'Средний',
+  C: 'Легкий',
+  D: 'Начинающий',
+  E: 'Очень простой',
+  F: 'Базовый'
+};
+
+export const RANK_POINTS_RANGE: Record<Rank, { min: number; max: number }> = {
+  SS: { min: 500, max: 1000 },
+  S: { min: 300, max: 500 },
+  A: { min: 150, max: 300 },
+  B: { min: 80, max: 150 },
+  C: { min: 40, max: 80 },
+  D: { min: 20, max: 40 },
+  E: { min: 10, max: 20 },
+  F: { min: 5, max: 10 }
+};
+
+// Функция для получения баллов по умолчанию для ранга
+export const getDefaultPointsForRank = (rank: Rank): number => {
+  const range = RANK_POINTS_RANGE[rank];
+  return Math.round((range.min + range.max) / 2); // Среднее значение
+};
+
 export interface Order {
   id: string;
   title: string;
@@ -20,7 +48,6 @@ export interface OrderTaker {
   comment: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
-  // Optional join fields
   orders?: Order; 
 }
 

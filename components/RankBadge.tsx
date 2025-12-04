@@ -1,7 +1,7 @@
 import React from 'react';
-import { Rank } from '../types';
+import { Rank, RANK_DESCRIPTIONS } from '../types';
 
-const RankBadge: React.FC<{ rank: Rank }> = ({ rank }) => {
+const RankBadge: React.FC<{ rank: Rank; showTooltip?: boolean }> = ({ rank, showTooltip = false }) => {
   const colors = {
     SS: 'bg-gradient-to-r from-purple-600 to-purple-800 border-purple-900 text-white shadow-[0_0_10px_rgba(147,51,234,0.5)]',
     S: 'bg-gradient-to-r from-red-600 to-red-800 border-red-900 text-white',
@@ -14,9 +14,14 @@ const RankBadge: React.FC<{ rank: Rank }> = ({ rank }) => {
   };
 
   return (
-    <span className={`${colors[rank]} border-2 font-black font-hand text-lg px-3 py-1 rounded-full transform -rotate-6 inline-block shadow-md`}>
-      {rank}
-    </span>
+    <div className="relative inline-block">
+      <span 
+        className={`${colors[rank]} border-2 font-black font-hand text-lg px-3 py-1 rounded-full transform -rotate-6 inline-block shadow-md hover:scale-105 transition-transform cursor-default`}
+        title={showTooltip ? `${rank} - ${RANK_DESCRIPTIONS[rank]}` : undefined}
+      >
+        {rank}
+      </span>
+    </div>
   );
 };
 

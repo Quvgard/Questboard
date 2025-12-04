@@ -104,7 +104,7 @@ const BoardPage: React.FC = () => {
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-red-800 shadow-sm border border-red-900 z-20"></div>
 
               <div className="flex justify-between items-start mb-4">
-                <RankBadge rank={order.rank} />
+                <RankBadge rank={order.rank} showTooltip={true} />
                 <div className="flex items-center gap-1 bg-white/40 px-2 py-1 rounded-full text-sm font-bold text-gray-700">
                   <Coins size={14} />
                   <span>{order.reward_points}</span>
@@ -150,7 +150,7 @@ const BoardPage: React.FC = () => {
             <div className="p-8">
               <div className="mb-6 border-b border-dashed border-gray-300 pb-4">
                 <div className="flex justify-between items-center mb-2">
-                   <RankBadge rank={selectedOrder.rank} />
+                   <RankBadge rank={selectedOrder.rank} showTooltip={true} />
                    <span className="text-2xl font-bold font-hand text-amber-600">{selectedOrder.reward_points} баллов</span>
                 </div>
                 <h2 className="text-2xl font-bold mb-2">{selectedOrder.title}</h2>

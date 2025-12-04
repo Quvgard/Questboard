@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Order, OrderTaker, Reward, Student, Rank } from '../types';
+import { Order, OrderTaker, Reward, Student, Rank, RANK_DESCRIPTIONS, RANK_POINTS_RANGE, getDefaultPointsForRank } from '../types';
 import toast from 'react-hot-toast';
-import { Trash2, Edit, Plus, Check, X, LogOut, Save } from 'lucide-react';
+import { Trash2, Edit, Plus, Check, X, LogOut, Save, Info } from 'lucide-react';
 import RankBadge from '../components/RankBadge';
 
 type Tab = 'orders' | 'approvals' | 'rewards' | 'students';
@@ -182,6 +182,16 @@ const AdminPage: React.FC = () => {
       toast.success('Баллы обновлены');
   };
 
+    // Добавляем обработчик изменения ранга
+  const handleRankChange = (newRank: Rank) => {
+    const defaultPoints = getDefaultPointsForRank(newRank);
+    setEditingOrder({
+      ...editingOrder,
+      rank: newRank,
+      reward_points: defaultPoints // Автоматически подставляем баллы в поле
+    });
+  };
+
   if (loading) return <div className="p-10 text-center">Загрузка панели управления...</div>;
 
   return (
@@ -208,8 +218,18 @@ const AdminPage: React.FC = () => {
                 <div>
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-2xl font-bold">Управление Заказами</h3>
-                        <button onClick={() => { setEditingOrder({ rank: 'C', max_slots: 1, reward_points: 10 }); setIsModalOpen(true); }} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
-                            <Plus size={18}/> Создать заказ
+                        <button onClick={() => { 
+                          const defaultRank: Rank = 'F';
+                          const defaultPoints = getDefaultPointsForRank(defaultRank);
+                          setEditingOrder({ 
+                            rank: defaultRank, 
+                            max_slots: 1, 
+                            reward_points: defaultPoints,
+                            status: 'open'
+                          }); 
+                          setIsModalOpen(true); 
+                        }} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
+                          <Plus size={18}/> Создать заказ
                         </button>
                     </div>
                     <table className="w-full text-left border-collapse">
@@ -226,7 +246,7 @@ const AdminPage: React.FC = () => {
                             {orders.map(o => (
                                 <tr key={o.id} className="border-b hover:bg-gray-50">
                                     <td className="p-3 font-medium">{o.title}</td>
-                                    <td className="p-3"><RankBadge rank={o.rank}/></td>
+                                    <td className="p-3"><RankBadge rank={o.rank} showTooltip={true}/></td>
                                     <td className="p-3">{o.taken_slots}/{o.max_slots}</td>
                                     <td className="p-3">
                                         <span className={`px-2 py-1 rounded text-xs ${o.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
@@ -351,35 +371,86 @@ const AdminPage: React.FC = () => {
                   </h3>
                   
                   {activeTab === 'orders' && (
-                      <div className="space-y-3">
-                          <input className="w-full border p-2 rounded" placeholder="Название" value={editingOrder.title || ''} onChange={e => setEditingOrder({...editingOrder, title: e.target.value})} />
-                          <textarea className="w-full border p-2 rounded" placeholder="Описание" rows={3} value={editingOrder.description || ''} onChange={e => setEditingOrder({...editingOrder, description: e.target.value})} />
-                          <div className="flex gap-4">
-                              <div className="w-1/2">
-                                  <label className="text-xs text-gray-500">Ранг</label>
-                                  <select className="w-full border p-2 rounded" value={editingOrder.rank || 'C'} onChange={e => setEditingOrder({...editingOrder, rank: e.target.value as Rank})}>
-                                    {['SS', 'S', 'A', 'B', 'C', 'D', 'E', 'F'].map(r => <option key={r} value={r}>{r}</option>)}
-                                  </select>
-                              </div>
-                              <div className="w-1/2">
-                                  <label className="text-xs text-gray-500">Очки</label>
-                                  <input type="number" className="w-full border p-2 rounded" value={editingOrder.reward_points} onChange={e => setEditingOrder({...editingOrder, reward_points: Number(e.target.value)})} />
-                              </div>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Название *</label>
+                            <input 
+                              className="w-full border border-gray-300 rounded-md p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-500" 
+                              placeholder="Название задания" 
+                              value={editingOrder.title || ''} 
+                              onChange={e => setEditingOrder({...editingOrder, title: e.target.value})} 
+                            />
                           </div>
-                          <div className="flex gap-4">
-                                <div className="w-1/2">
-                                    <label className="text-xs text-gray-500">Макс. мест</label>
-                                    <input type="number" className="w-full border p-2 rounded" value={editingOrder.max_slots} onChange={e => setEditingOrder({...editingOrder, max_slots: Number(e.target.value)})} />
-                                </div>
-                                <div className="w-1/2">
-                                    <label className="text-xs text-gray-500">Статус</label>
-                                    <select className="w-full border p-2 rounded" value={editingOrder.status} onChange={e => setEditingOrder({...editingOrder, status: e.target.value as any})}>
-                                        <option value="open">Open</option>
-                                        <option value="completed">Completed</option>
-                                    </select>
-                                </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                            <textarea 
+                              className="w-full border border-gray-300 rounded-md p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-500" 
+                              placeholder="Подробное описание задания" 
+                              rows={3}
+                              value={editingOrder.description || ''} 
+                              onChange={e => setEditingOrder({...editingOrder, description: e.target.value})} 
+                            />
                           </div>
-                      </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                Ранг
+                                <span className="text-xs font-normal text-gray-500">({RANK_DESCRIPTIONS[editingOrder.rank as Rank || 'F']})</span>
+                              </label>
+                              <select 
+                                className="w-full border border-gray-300 rounded-md p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-500" 
+                                value={editingOrder.rank || 'F'} 
+                                onChange={e => handleRankChange(e.target.value as Rank)}
+                              >
+                                {['SS', 'S', 'A', 'B', 'C', 'D', 'E', 'F'].map(r => (
+                                  <option key={r} value={r}>
+                                    {r} - {RANK_DESCRIPTIONS[r as Rank]}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Диапазон: {RANK_POINTS_RANGE[editingOrder.rank as Rank || 'F'].min}-{RANK_POINTS_RANGE[editingOrder.rank as Rank || 'F'].max} баллов
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Баллы награды</label>
+                              <input 
+                                type="number" 
+                                className="w-full border border-gray-300 rounded-md p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-500" 
+                                value={editingOrder.reward_points || getDefaultPointsForRank(editingOrder.rank as Rank || 'F')} 
+                                onChange={e => setEditingOrder({...editingOrder, reward_points: Number(e.target.value)})}
+                                min={RANK_POINTS_RANGE[editingOrder.rank as Rank || 'F'].min}
+                                max={RANK_POINTS_RANGE[editingOrder.rank as Rank || 'F'].max}
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Макс. участников</label>
+                              <input 
+                                type="number" 
+                                className="w-full border border-gray-300 rounded-md p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-500" 
+                                value={editingOrder.max_slots || 1} 
+                                onChange={e => setEditingOrder({...editingOrder, max_slots: Number(e.target.value)})}
+                                min="1"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+                              <select 
+                                className="w-full border border-gray-300 rounded-md p-2 focus:border-amber-500 focus:ring-1 focus:ring-amber-500" 
+                                value={editingOrder.status || 'open'} 
+                                onChange={e => setEditingOrder({...editingOrder, status: e.target.value as any})}
+                              >
+                                <option value="open">Открыто</option>
+                                <option value="completed">Завершено</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
                   )}
 
                   {activeTab === 'rewards' && (
