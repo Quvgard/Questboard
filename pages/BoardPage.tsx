@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Order } from '../types';
 import RankBadge from '../components/RankBadge';
-import { Users, Coins, PenTool, CheckCircle, Clock } from 'lucide-react';
+import { Users, Coins, PenTool, CheckCircle, Clock, Upload, FileCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const BoardPage: React.FC = () => {
@@ -38,7 +38,7 @@ const BoardPage: React.FC = () => {
     }
   };
 
-  const handleTakeOrder = async (e: React.FormEvent) => {
+  const handleSubmitTaskResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrder) return;
 
@@ -55,19 +55,18 @@ const BoardPage: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success('Заявка отправлена! Ожидайте подтверждения.');
+      toast.success('Результаты отправлены на проверку! Ожидайте подтверждения от Мастера.');
       setSelectedOrder(null);
       setStudentName('');
       setStudentGroup('');
       setComment('');
       
-      // Update local state to reflect taken slot immediately (optimistic UI)
-      // Real update happens on admin approval, but let's re-fetch to see if slot count changed if logic was different
+      // Обновляем список заданий
       fetchOrders(); 
 
     } catch (error) {
       console.error(error);
-      toast.error('Ошибка при отправке заявки');
+      toast.error('Ошибка при отправке результатов');
     } finally {
       setSubmitting(false);
     }
@@ -123,12 +122,12 @@ const BoardPage: React.FC = () => {
               <div className="mt-auto flex justify-between items-center text-sm font-semibold text-gray-700 border-t border-black/10 pt-3">
                 <div className="flex items-center gap-1">
                   <Users size={16} />
-                  <span>{order.taken_slots} / {order.max_slots}</span>
+                  <span>Выполнено: {order.taken_slots} из {order.max_slots}</span>
                 </div>
                 {order.taken_slots >= order.max_slots ? (
-                  <span className="text-red-600 flex items-center gap-1"><Clock size={16}/> Полный</span>
+                  <span className="text-red-600 flex items-center gap-1"><Clock size={16}/> Завершено</span>
                 ) : (
-                  <span className="text-blue-700 flex items-center gap-1"><PenTool size={16}/> Взять</span>
+                  <span className="text-blue-700 flex items-center gap-1"><FileCheck size={16}/> Отправить результат</span>
                 )}
               </div>
             </div>
@@ -157,16 +156,16 @@ const BoardPage: React.FC = () => {
                 <p className="text-gray-600 whitespace-pre-wrap">{selectedOrder.description}</p>
                 <div className="mt-4 flex items-center gap-2 text-sm text-gray-500 bg-gray-100 p-2 rounded">
                   <Users size={16} />
-                  <span>Доступно мест: {selectedOrder.max_slots - selectedOrder.taken_slots} из {selectedOrder.max_slots}</span>
+                  <span>Выполнено: {selectedOrder.taken_slots} из {selectedOrder.max_slots}</span>
                 </div>
               </div>
 
               {selectedOrder.taken_slots >= selectedOrder.max_slots ? (
                 <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center font-bold">
-                  К сожалению, все места на это задание уже заняты.
+                  Это задание уже выполнено максимальное количество раз.
                 </div>
               ) : (
-                <form onSubmit={handleTakeOrder} className="space-y-4">
+                <form onSubmit={handleSubmitTaskResult} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ФИО Студента</label>
                     <input 
@@ -190,13 +189,17 @@ const BoardPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий (опционально)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Результат выполнения *
+                      <span className="text-xs text-gray-500 ml-1">(GitHub, Google Drive, фото и т.д.)</span>
+                    </label>
                     <textarea 
                       className="w-full border-2 border-gray-200 rounded-md p-2 focus:border-amber-500 focus:outline-none"
-                      placeholder="Готов приступить сегодня..."
+                      placeholder="Вставь в меня ссылку..."
                       rows={3}
                       value={comment}
                       onChange={e => setComment(e.target.value)}
+                      required
                     />
                   </div>
                   <button 
@@ -204,7 +207,7 @@ const BoardPage: React.FC = () => {
                     disabled={submitting}
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow-md transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
                   >
-                    {submitting ? 'Отправка...' : <><CheckCircle size={20}/> Взять Задание</>}
+                    {submitting ? 'Отправка...' : <><Upload size={20}/> Отправить на проверку</>}
                   </button>
                 </form>
               )}

@@ -79,3 +79,6 @@ export interface Student {
   student_group: string;
   total_points: number;
 }
+
+// Тип для результата выполнения задания
+export type TaskResultStatus = 'pending_review' | 'approved' | 'rejected' | 'completed';
