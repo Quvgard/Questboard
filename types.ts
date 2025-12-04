@@ -28,6 +28,19 @@ export const getDefaultPointsForRank = (rank: Rank): number => {
   return Math.round((range.min + range.max) / 2); // Среднее значение
 };
 
+export interface RewardPurchase {
+  id: string;
+  reward_id: string;
+  student_name: string;
+  student_group: string;
+  quantity: number;
+  total_price: number;
+  comment: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'delivered';
+  created_at: string;
+  rewards?: Reward;
+}
+
 export interface Order {
   id: string;
   title: string;

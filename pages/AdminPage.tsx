@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Order, OrderTaker, Reward, Student, Rank, RANK_DESCRIPTIONS, RANK_POINTS_RANGE, getDefaultPointsForRank } from '../types';
+import { Order, OrderTaker, Reward, Student, Rank, RANK_DESCRIPTIONS, RANK_POINTS_RANGE, getDefaultPointsForRank, RewardPurchase} from '../types';
 import toast from 'react-hot-toast';
 import { Trash2, Edit, Plus, Check, X, LogOut, Save, Info } from 'lucide-react';
 import RankBadge from '../components/RankBadge';
 
-type Tab = 'orders' | 'approvals' | 'rewards' | 'students';
+type Tab = 'orders' | 'approvals' | 'rewards' | 'students' | 'purchases';
 
 const AdminPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('orders');
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [purchases, setPurchases] = useState<(RewardPurchase & { rewards: Reward })[]>([]);
 
   // Data
   const [orders, setOrders] = useState<Order[]>([]);
@@ -42,8 +43,22 @@ const AdminPage: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchOrders(), fetchRequests(), fetchRewards(), fetchStudents()]);
+    await Promise.all([
+      fetchOrders(), 
+      fetchRequests(), 
+      fetchRewards(), 
+      fetchStudents(),
+      fetchPurchases() // Добавляем
+    ]);
     setLoading(false);
+  };
+
+  const fetchPurchases = async () => {
+    const { data } = await supabase
+      .from('reward_purchases')
+      .select('*, rewards(*)')
+      .order('created_at', { ascending: false });
+    if (data) setPurchases(data as any);
   };
 
   const fetchOrders = async () => {
@@ -74,6 +89,76 @@ const AdminPage: React.FC = () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
+
+  const handlePurchaseAction = async (purchaseId: string, action: 'approve' | 'reject' | 'deliver') => {
+  try {
+    let newStatus: RewardPurchase['status'] = 'pending';
+    let message = '';
+    
+    // Находим покупку для получения данных
+    const purchase = purchases.find(p => p.id === purchaseId);
+    if (!purchase) {
+      toast.error('Покупка не найдена');
+      return;
+    }
+    
+    switch (action) {
+      case 'approve':
+        // Проверяем, что у студента хватает баллов
+        const { data: student } = await supabase
+          .from('students')
+          .select('*')
+          .eq('name', purchase.student_name)
+          .eq('student_group', purchase.student_group)
+          .single();
+        
+        if (!student) {
+          toast.error('Студент не найден в системе');
+          return;
+        }
+        
+        if (student.total_points < purchase.total_price) {
+          toast.error(`❌ У студента недостаточно баллов! Требуется: ${purchase.total_price}, есть: ${student.total_points}`);
+          return;
+        }
+        
+        // Списание баллов
+        const newPoints = Math.max(0, student.total_points - purchase.total_price);
+        await supabase
+          .from('students')
+          .update({ total_points: newPoints })
+          .eq('id', student.id);
+        
+        newStatus = 'approved';
+        message = `✅ Покупка подтверждена. Списано ${purchase.total_price} баллов. Остаток: ${newPoints}`;
+        break;
+        
+      case 'reject':
+        newStatus = 'rejected';
+        message = 'Покупка отклонена. Баллы не списаны.';
+        break;
+        
+      case 'deliver':
+        newStatus = 'delivered';
+        message = 'Товар выдан. Покупка завершена.';
+        break;
+    }
+    
+    // Обновляем статус покупки
+    await supabase
+      .from('reward_purchases')
+      .update({ status: newStatus })
+      .eq('id', purchaseId);
+    
+    toast.success(message);
+    fetchPurchases();
+    fetchStudents(); // Обновляем список студентов (балансы)
+    
+  } catch (error: any) {
+    console.error('Error processing purchase:', error);
+    toast.error('Ошибка: ' + error.message);
+  }
+};
 
   // --- Logic: Orders ---
   const saveOrder = async () => {
@@ -203,6 +288,11 @@ const AdminPage: React.FC = () => {
             <button onClick={() => setActiveTab('approvals')} className={`text-left px-4 py-2 rounded ${activeTab === 'approvals' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>
                 Заявки <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-2">{requests.filter(r => r.status === 'pending').length}</span>
             </button>
+            <button onClick={() => setActiveTab('purchases')} className={`text-left px-4 py-2 rounded ${activeTab === 'purchases' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>
+              Покупки <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-2">
+                {purchases.filter(p => p.status === 'pending').length}
+              </span>
+            </button>
             <button onClick={() => setActiveTab('rewards')} className={`text-left px-4 py-2 rounded ${activeTab === 'rewards' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>Награды</button>
             <button onClick={() => setActiveTab('students')} className={`text-left px-4 py-2 rounded ${activeTab === 'students' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>Студенты</button>
             <div className="mt-auto">
@@ -296,69 +386,186 @@ const AdminPage: React.FC = () => {
 
             {/* --- TAB: REWARDS --- */}
             {activeTab === 'rewards' && (
-                 <div>
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-2xl font-bold">Управление Магазином</h3>
-                        <button onClick={() => { setEditingReward({ is_active: true, price: 100 }); setIsModalOpen(true); }} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
-                            <Plus size={18}/> Добавить товар
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {rewards.map(r => (
-                             <div key={r.id} className="border p-4 rounded-lg flex justify-between items-start">
-                                 <div>
-                                     <h4 className="font-bold">{r.title}</h4>
-                                     <p className="text-sm text-gray-600">{r.description}</p>
-                                     <div className="mt-2 font-mono text-amber-600 font-bold">{r.price} баллов</div>
-                                 </div>
-                                 <div className="flex gap-2">
-                                     <button onClick={() => { setEditingReward(r); setIsModalOpen(true); }} className="text-blue-600"><Edit size={18}/></button>
-                                     <button onClick={() => deleteReward(r.id)} className="text-red-600"><Trash2 size={18}/></button>
-                                 </div>
-                             </div>
-                        ))}
-                    </div>
-                 </div>
-            )}
-
-             {/* --- TAB: STUDENTS --- */}
-             {activeTab === 'students' && (
-                <div>
-                     <h3 className="text-2xl font-bold mb-6">Журнал Студентов</h3>
-                     <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b bg-gray-50">
-                                <th className="p-3">Студент</th>
-                                <th className="p-3">Группа</th>
-                                <th className="p-3">Всего Баллов</th>
-                                <th className="p-3">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students.map(s => (
-                                <tr key={s.id} className="border-b">
-                                    <td className="p-3 font-medium">{s.name}</td>
-                                    <td className="p-3 text-gray-500">{s.student_group}</td>
-                                    <td className="p-3 font-bold text-amber-700">{s.total_points}</td>
-                                    <td className="p-3">
-                                        <button 
-                                            onClick={() => {
-                                                const newPoints = prompt("Введите новое количество баллов:", s.total_points.toString());
-                                                if(newPoints !== null && !isNaN(Number(newPoints))) {
-                                                    updateStudentPoints(s.id, Number(newPoints));
-                                                }
-                                            }}
-                                            className="text-sm bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded"
-                                        >
-                                            Изменить
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold">Управление Магазином</h3>
+                    <button onClick={() => { setEditingReward({ is_active: true, price: 100 }); setIsModalOpen(true); }} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
+                        <Plus size={18}/> Добавить товар
+                    </button>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {rewards.map(r => (
+                          <div key={r.id} className="border p-4 rounded-lg flex justify-between items-start">
+                              <div>
+                                  <h4 className="font-bold">{r.title}</h4>
+                                  <p className="text-sm text-gray-600">{r.description}</p>
+                                  <div className="mt-2 font-mono text-amber-600 font-bold">{r.price} баллов</div>
+                              </div>
+                              <div className="flex gap-2">
+                                  <button onClick={() => { setEditingReward(r); setIsModalOpen(true); }} className="text-blue-600"><Edit size={18}/></button>
+                                  <button onClick={() => deleteReward(r.id)} className="text-red-600"><Trash2 size={18}/></button>
+                              </div>
+                          </div>
+                    ))}
+                </div>
+              </div>
             )}
+            {activeTab === 'purchases' && (
+              <div>
+                <h3 className="text-2xl font-bold mb-6">Заявки на покупку</h3>
+                
+                <div className="mb-4 flex gap-2">
+                  <button 
+                    onClick={() => {}}
+                    className={`px-4 py-2 rounded ${true ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}
+                  >
+                    Все ({purchases.length})
+                  </button>
+                  <button 
+                    onClick={() => {}}
+                    className={`px-4 py-2 rounded ${false ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}
+                  >
+                    Ожидают ({purchases.filter(p => p.status === 'pending').length})
+                  </button>
+                  <button 
+                    onClick={() => {}}
+                    className={`px-4 py-2 rounded ${false ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}
+                  >
+                    Подтверждены ({purchases.filter(p => p.status === 'approved').length})
+                  </button>
+                  <button 
+                    onClick={() => {}}
+                    className={`px-4 py-2 rounded ${false ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}
+                  >
+                    Выданы ({purchases.filter(p => p.status === 'delivered').length})
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {purchases.length === 0 && (
+                    <p className="text-gray-500 text-center py-8">Нет заявок на покупку.</p>
+                  )}
+                  
+                  {purchases.map(purchase => (
+                    <div 
+                      key={purchase.id} 
+                      className={`border rounded-lg p-4 ${purchase.status === 'pending' ? 'bg-yellow-50 border-yellow-200' : 
+                                  purchase.status === 'approved' ? 'bg-blue-50 border-blue-200' : 
+                                  purchase.status === 'delivered' ? 'bg-green-50 border-green-200' : 
+                                  'bg-red-50 border-red-200'}`}
+                    >
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div className="flex-1">
+                          <div className="font-bold text-lg flex items-center gap-2">
+                            {purchase.student_name} 
+                            <span className="text-gray-500 text-sm">({purchase.student_group})</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${purchase.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
+                                            purchase.status === 'approved' ? 'bg-blue-200 text-blue-800' :
+                                            purchase.status === 'delivered' ? 'bg-green-200 text-green-800' :
+                                            'bg-red-200 text-red-800'}`}>
+                              {purchase.status === 'pending' ? 'Ожидает' :
+                              purchase.status === 'approved' ? 'Подтверждено' :
+                              purchase.status === 'delivered' ? 'Выдано' : 'Отклонено'}
+                            </span>
+                          </div>
+                          
+                          <div className="mt-2">
+                            <div className="font-semibold">
+                              {purchase.rewards?.title || 'Товар удален'} 
+                              <span className="text-gray-600 ml-2">×{purchase.quantity} шт.</span>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {purchase.rewards?.description}
+                            </div>
+                            <div className="mt-1 font-mono font-bold text-amber-700">
+                              {purchase.total_price} баллов ({purchase.rewards?.price} × {purchase.quantity})
+                            </div>
+                            {purchase.comment && (
+                              <div className="mt-2 text-sm italic bg-gray-100 p-2 rounded">
+                                "{purchase.comment}"
+                              </div>
+                            )}
+                            <div className="text-xs text-gray-400 mt-1">
+                              {new Date(purchase.created_at).toLocaleString('ru-RU')}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {purchase.status === 'pending' && (
+                          <div className="flex gap-2 mt-4 md:mt-0 flex-wrap">
+                            <button 
+                              onClick={() => {
+                                if (confirm(`Подтвердить покупку?\n\nТовар: ${purchase.rewards?.title || 'N/A'}\nСтудент: ${purchase.student_name} (${purchase.student_group})\nКоличество: ${purchase.quantity} шт.\nСумма: ${purchase.total_price} баллов\n\nБаллы будут списаны со счета студента.`)) {
+                                  handlePurchaseAction(purchase.id, 'approve');
+                                }
+                              }}
+                              className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded flex items-center gap-1 text-sm"
+                            >
+                              <Check size={16}/> Подтвердить
+                            </button>
+                            <button 
+                              onClick={() => handlePurchaseAction(purchase.id, 'reject')}
+                              className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded flex items-center gap-1 text-sm"
+                            >
+                              <X size={16}/> Отклонить
+                            </button>
+                          </div>
+                        )}
+                        
+                        {purchase.status === 'approved' && (
+                          <div className="flex gap-2 mt-4 md:mt-0">
+                            <button 
+                              onClick={() => handlePurchaseAction(purchase.id, 'deliver')}
+                              className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded flex items-center gap-1 text-sm"
+                            >
+                              ✓ Выдано
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* --- TAB: STUDENTS --- */}
+            {activeTab === 'students' && (
+              <div>
+                    <h3 className="text-2xl font-bold mb-6">Журнал Студентов</h3>
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                          <tr className="border-b bg-gray-50">
+                              <th className="p-3">Студент</th>
+                              <th className="p-3">Группа</th>
+                              <th className="p-3">Всего Баллов</th>
+                              <th className="p-3">Действия</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {students.map(s => (
+                              <tr key={s.id} className="border-b">
+                                  <td className="p-3 font-medium">{s.name}</td>
+                                  <td className="p-3 text-gray-500">{s.student_group}</td>
+                                  <td className="p-3 font-bold text-amber-700">{s.total_points}</td>
+                                  <td className="p-3">
+                                      <button 
+                                          onClick={() => {
+                                              const newPoints = prompt("Введите новое количество баллов:", s.total_points.toString());
+                                              if(newPoints !== null && !isNaN(Number(newPoints))) {
+                                                  updateStudentPoints(s.id, Number(newPoints));
+                                              }
+                                          }}
+                                          className="text-sm bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded"
+                                      >
+                                          Изменить
+                                      </button>
+                                  </td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
+          )}
         </div>
       </div>
 
