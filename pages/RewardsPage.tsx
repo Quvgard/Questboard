@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Reward } from '../types';
-import { Gift, ShoppingBag, Plus, Minus, AlertCircle, CheckCircle } from 'lucide-react';
+import { 
+  Gift, Coffee, Book, Trophy, Star, Heart, Award, Crown,
+  Pizza, Music, Film, Gamepad, Shirt, Headphones, BookOpen,
+  ShoppingBag, Plus, Minus, AlertCircle, CheckCircle 
+} from 'lucide-react';
 
 const RewardsPage: React.FC = () => {
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -19,6 +23,35 @@ const RewardsPage: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+
+  // Создадим компонент для отображения иконки
+  const RewardIconComponent: React.FC<{ icon: string; size?: number; className?: string }> = ({ 
+    icon, 
+    size = 56, 
+    className = "text-amber-600" 
+  }) => {
+    const iconMap = {
+      gift: Gift,
+      coffee: Coffee,
+      book: Book,
+      trophy: Trophy,
+      star: Star,
+      heart: Heart,
+      award: Award,
+      crown: Crown,
+      pizza: Pizza,
+      music: Music,
+      film: Film,
+      gamepad: Gamepad,
+      shirt: Shirt,
+      headphones: Headphones,
+      'book-open': BookOpen,
+    };
+
+    const IconComponent = iconMap[icon as keyof typeof iconMap] || Gift;
+    
+    return <IconComponent size={size} className={className} />;
+  };
 
   useEffect(() => {
     const fetchRewards = async () => {
@@ -137,7 +170,7 @@ const RewardsPage: React.FC = () => {
   const hasEnoughPoints = studentPoints !== null && studentPoints >= totalPrice;
   const pointsDifference = studentPoints !== null ? totalPrice - studentPoints : 0;
 
-  if (loading) return <div className="text-center py-20 font-hand text-2xl">Загрузка товаров...</div>;
+  if (loading) return <div className="text-center py-20 font-hand text-2xl text-gray-500">Загрузка товаров...</div>;
 
   return (
     <div>
@@ -150,7 +183,11 @@ const RewardsPage: React.FC = () => {
         {rewards.map((reward) => (
           <div key={reward.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow flex flex-col">
             <div className="h-40 bg-gradient-to-r from-amber-100 to-amber-50 flex items-center justify-center">
-              <Gift size={56} className="text-amber-600" />
+              <RewardIconComponent 
+                icon={reward.icon || 'gift'} 
+                size={56} 
+                className="text-amber-600" 
+              />
             </div>
             
             <div className="p-5 flex flex-col flex-grow">

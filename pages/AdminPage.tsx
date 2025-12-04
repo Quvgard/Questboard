@@ -3,11 +3,16 @@ import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Order, OrderTaker, Reward, Student, Rank, RANK_DESCRIPTIONS, RANK_POINTS_RANGE, getDefaultPointsForRank, RewardPurchase} from '../types';
 import toast from 'react-hot-toast';
-import { Trash2, Edit, Plus, Check, X, LogOut, Save, Info, Filter, UserX, FileCheck } from 'lucide-react';
+import { 
+  Gift, Coffee, Book, Trophy, Star, Heart, Award, Crown,
+  Pizza, Music, Film, Gamepad, Shirt, Headphones, BookOpen,
+  Trash2, Edit, Plus, Check, X, LogOut, Save, Info, Filter, UserX, FileCheck, 
+} from 'lucide-react';
 import RankBadge from '../components/RankBadge';
 
 type Tab = 'orders' | 'approvals' | 'rewards' | 'students' | 'purchases';
 type PurchaseFilter = 'all' | 'pending' | 'approved' | 'delivered';
+
 
 const AdminPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +33,52 @@ const AdminPage: React.FC = () => {
   const [editingOrder, setEditingOrder] = useState<Partial<Order>>({});
   const [editingReward, setEditingReward] = useState<Partial<Reward>>({});
   const [editingStudent, setEditingStudent] = useState<Partial<Student>>({});
+
+    // Создаем компонент для отображения иконок в админке
+  const AdminRewardIcon: React.FC<{ icon: string; size?: number; className?: string }> = ({ 
+    icon, 
+    size = 32, 
+    className = "text-amber-600" 
+  }) => {
+    const iconMap = {
+      'gift': Gift,
+      'coffee': Coffee,
+      'book': Book,
+      'trophy': Trophy,
+      'star': Star,
+      'heart': Heart,
+      'award': Award,
+      'crown': Crown,
+      'pizza': Pizza,
+      'music': Music,
+      'film': Film,
+      'gamepad': Gamepad,
+      'shirt': Shirt,
+      'headphones': Headphones,
+      'book-open': BookOpen,
+    };
+
+    const IconComponent = iconMap[icon as keyof typeof iconMap] || Gift;
+    return <IconComponent size={size} className={className} />;
+  };
+
+  const availableIcons = [
+    { value: 'gift', label: 'Подарок', component: Gift },
+    { value: 'coffee', label: 'Кофе', component: Coffee },
+    { value: 'book', label: 'Книга', component: Book },
+    { value: 'trophy', label: 'Трофей', component: Trophy },
+    { value: 'star', label: 'Звезда', component: Star },
+    { value: 'heart', label: 'Сердце', component: Heart },
+    { value: 'award', label: 'Награда', component: Award },
+    { value: 'crown', label: 'Корона', component: Crown },
+    { value: 'pizza', label: 'Пицца', component: Pizza },
+    { value: 'music', label: 'Музыка', component: Music },
+    { value: 'film', label: 'Фильм', component: Film },
+    { value: 'gamepad', label: 'Геймпад', component: Gamepad },
+    { value: 'shirt', label: 'Футболка', component: Shirt },
+    { value: 'headphones', label: 'Наушники', component: Headphones },
+    { value: 'book-open', label: 'Открытая книга', component: BookOpen },
+  ];
 
   useEffect(() => {
     checkSession();
@@ -241,11 +292,12 @@ const AdminPage: React.FC = () => {
 
   // --- Logic: Rewards ---
   const saveReward = async () => {
-    const payload = {
-        title: editingReward.title!,
-        description: editingReward.description,
-        price: editingReward.price || 100,
-        is_active: editingReward.is_active !== false // defaults true
+      const payload = {
+      title: editingReward.title!,
+      description: editingReward.description,
+      price: editingReward.price || 100,
+      is_active: editingReward.is_active !== false,
+      icon: editingReward.icon || 'gift' // Добавляем иконку
     };
     if (editingReward.id) {
         await supabase.from('rewards').update(payload).eq('id', editingReward.id);
@@ -347,7 +399,7 @@ const AdminPage: React.FC = () => {
   // Получаем отфильтрованные покупки
   const filteredPurchases = getFilteredPurchases();
 
-  if (loading) return <div className="p-10 text-center">Загрузка панели управления...</div>;
+  if (loading) return <div className="text-center py-20 font-hand text-2xl text-gray-500">Загрузка панели управления...</div>;
 
   return (
     <div className="bg-white rounded-lg shadow-xl min-h-[80vh] flex flex-col">
@@ -365,7 +417,7 @@ const AdminPage: React.FC = () => {
                     {purchases.filter(p => p.status === 'pending').length}
                   </span>
                 </button>
-                <button onClick={() => setActiveTab('rewards')} className={`text-left px-4 py-2 rounded ${activeTab === 'rewards' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>Награды</button>
+                <button onClick={() => setActiveTab('rewards')} className={`text-left px-4 py-2 rounded ${activeTab === 'rewards' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>Магазин</button>
                 <button onClick={() => setActiveTab('students')} className={`text-left px-4 py-2 rounded ${activeTab === 'students' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-gray-100'}`}>Студенты</button>
             </div>
             <div className="pt-4 border-t mt-auto">
@@ -381,7 +433,7 @@ const AdminPage: React.FC = () => {
             {activeTab === 'orders' && (
                 <div className="flex-grow">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-2xl font-bold">Управление Заказами</h3>
+                        <h3 className="text-2xl font-bold">Управление заказами</h3>
                         <button onClick={() => { 
                           const defaultRank: Rank = 'F';
                           const defaultPoints = getDefaultPointsForRank(defaultRank);
@@ -500,26 +552,29 @@ const AdminPage: React.FC = () => {
             {activeTab === 'rewards' && (
               <div className="flex-grow">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-2xl font-bold">Управление Магазином</h3>
+                    <h3 className="text-2xl font-bold">Управление магазином</h3>
                     <button onClick={() => { setEditingReward({ is_active: true, price: 100 }); setIsModalOpen(true); }} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
                         <Plus size={18}/> Добавить товар
                     </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
                     {rewards.map(r => (
-                          <div key={r.id} className="border p-4 rounded-lg flex justify-between items-start">
-                              <div>
-                                  <h4 className="font-bold">{r.title}</h4>
-                                  <p className="text-sm text-gray-600">{r.description}</p>
-                                  <div className="mt-2 font-mono text-amber-600 font-bold">{r.price} баллов</div>
-                              </div>
-                              <div className="flex gap-2">
-                                  <button onClick={() => { setEditingReward(r); setIsModalOpen(true); }} className="text-blue-600"><Edit size={18}/></button>
-                                  <button onClick={() => deleteReward(r.id)} className="text-red-600"><Trash2 size={18}/></button>
-                              </div>
-                          </div>
+                      <div key={r.id} className="border p-4 rounded-lg flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          <AdminRewardIcon icon={r.icon || 'gift'} size={32} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold">{r.title}</h4>
+                          <p className="text-sm text-gray-600">{r.description}</p>
+                          <div className="mt-2 font-mono text-amber-600 font-bold">{r.price} баллов</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditingReward(r); setIsModalOpen(true); }} className="text-blue-600"><Edit size={18}/></button>
+                          <button onClick={() => deleteReward(r.id)} className="text-red-600"><Trash2 size={18}/></button>
+                        </div>
+                      </div>
                     ))}
-                </div>
+                  </div>
               </div>
             )}
             {activeTab === 'purchases' && (
@@ -671,14 +726,14 @@ const AdminPage: React.FC = () => {
             {/* --- TAB: STUDENTS --- */}
             {activeTab === 'students' && (
               <div className="flex-grow">
-                    <h3 className="text-2xl font-bold mb-6">Журнал Студентов</h3>
+                    <h3 className="text-2xl font-bold mb-6">Журнал студентов</h3>
                     <div className="flex-grow">
                         <table className="w-full text-left border-collapse">
                           <thead>
                               <tr className="border-b bg-gray-50">
                                   <th className="p-3">Студент</th>
                                   <th className="p-3">Группа</th>
-                                  <th className="p-3">Всего Баллов</th>
+                                  <th className="p-3">Всего баллов</th>
                                   <th className="p-3">Действия</th>
                               </tr>
                           </thead>
@@ -852,11 +907,33 @@ const AdminPage: React.FC = () => {
                   )}
 
                   {activeTab === 'rewards' && (
-                       <div className="space-y-3">
-                            <input className="w-full border p-2 rounded" placeholder="Название" value={editingReward.title || ''} onChange={e => setEditingReward({...editingReward, title: e.target.value})} />
-                            <textarea className="w-full border p-2 rounded" placeholder="Описание" value={editingReward.description || ''} onChange={e => setEditingReward({...editingReward, description: e.target.value})} />
-                            <input type="number" className="w-full border p-2 rounded" placeholder="Цена" value={editingReward.price} onChange={e => setEditingReward({...editingReward, price: Number(e.target.value)})} />
-                       </div>
+                    <div className="space-y-3">
+                      <input className="w-full border p-2 rounded" placeholder="Название" value={editingReward.title || ''} onChange={e => setEditingReward({...editingReward, title: e.target.value})} />
+                      <textarea className="w-full border p-2 rounded" placeholder="Описание" value={editingReward.description || ''} onChange={e => setEditingReward({...editingReward, description: e.target.value})} />
+                      <input type="number" className="w-full border p-2 rounded" placeholder="Цена" value={editingReward.price} onChange={e => setEditingReward({...editingReward, price: Number(e.target.value)})} />
+                      
+                      {/* Добавляем выбор иконки */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Иконка товара</label>
+                        <div className="grid grid-cols-5 gap-2">
+                          {availableIcons.map(({ value, label, component: Icon }) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setEditingReward({...editingReward, icon: value as any})}
+                              className={`flex flex-col items-center justify-center p-2 rounded-lg border-2 transition-all ${
+                                editingReward.icon === value 
+                                  ? 'border-amber-500 bg-amber-50' 
+                                  : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              <Icon size={24} className="text-amber-600 mb-1" />
+                              <span className="text-xs text-gray-600">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   )}
 
                   <div className="flex justify-end gap-2 mt-6">

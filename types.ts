@@ -71,6 +71,7 @@ export interface Reward {
   price: number;
   is_active: boolean;
   created_at: string;
+  icon?: RewardIcon; 
 }
 
 export interface Student {
@@ -82,3 +83,20 @@ export interface Student {
 
 // Тип для результата выполнения задания
 export type TaskResultStatus = 'pending_review' | 'approved' | 'rejected' | 'completed';
+
+export type RewardIcon = 
+  | 'gift' 
+  | 'coffee' 
+  | 'book' 
+  | 'trophy' 
+  | 'star' 
+  | 'heart' 
+  | 'award' 
+  | 'crown' 
+  | 'pizza' 
+  | 'music' 
+  | 'film' 
+  | 'gamepad' 
+  | 'shirt' 
+  | 'headphones' 
+  | 'book-open';
